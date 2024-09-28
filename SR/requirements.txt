@@ -61,7 +61,7 @@ proto-plus==1.23.0
 protobuf==4.25.3
 pyasn1==0.6.0
 pyasn1_modules==0.4.0
-PyAudio==0.2.14
+PyAudio==0.2.11
 pycparser==2.22
 pydantic==2.7.1
 pydantic_core==2.18.2
@@ -99,4 +99,4 @@ Wave==0.0.2
 Werkzeug==3.0.2
 whisper==1.1.10
 yarl==1.9.4
-gunicorn
+gunicorn==23.0.0
