@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Speech to Text Demo</title>
+</head>
+<body>
+    <h1>음성 인식 테스트</h1>
+    <button id="startRecord">녹음 시작</button>
+    <button id="stopRecord" disabled>녹음 중지</button>
+    <h2>결과:</h2>
+    <p id="transcript"></p>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const startRecord = document.getElementById('startRecord');
+        const stopRecord = document.getElementById('stopRecord');
+        const transcript = document.getElementById('transcript');
+
+        startRecord.onclick = () => {
+            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                startRecord.disabled = true;
+                stopRecord.disabled = false;
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks);
+                    sendAudioToServer(audioBlob);
+                    audioChunks = [];
+                    startRecord.disabled = false;
+                    stopRecord.disabled = true;
+                };
+            });
+        };
+
+        stopRecord.onclick = () => {
+            mediaRecorder.stop();
+        };
+
+        function sendAudioToServer(audioBlob) {
+            const formData = new FormData();
+            formData.append("audio", audioBlob); // 여기서 'audio'는 서버 측에서 기대하는 키입니다.
+
+            console.log("Sending audio data to server...");  // 데이터 전송 로그
+
+            fetch("/transcribe_microphone", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json()) // 서버로부터 JSON 응답을 정상적으로 파싱
+            .then(data => {
+                console.log(data);  // 콘솔에 데이터 출력하여 확인
+                //transcript.textContent = data.transcripts.join(" ");
+                document.getElementById("transcript").textContent = data.transcripts.join(" ");
+            })
+            .catch(error => console.error("Error transcribing audio:", error));
+        }
+    </script>
+</body>
+</html>

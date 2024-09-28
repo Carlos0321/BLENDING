@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>음성 인식</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            width: 80%;
+            max-width: 600px;
+        }
+        #result {
+            margin-top: 20px;
+            min-height: 100px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: left;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        #interim {
+            color: gray;
+            font-style: italic;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        #ttsButton {
+            background-color: #008CBA;
+        }
+        #ttsButton:hover {
+            background-color: #007B9A;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>음성 인식</h1>
+        <button id="start">음성 인식 시작</button>
+        <button id="stop" disabled>음성 인식 중지</button>
+        <button id="ttsButton">텍스트 읽기</button>
+        <div id="result"><span id="final"></span><span id="interim"></span></div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById('start');
+        const stopButton = document.getElementById('stop');
+        const ttsButton = document.getElementById('ttsButton');
+        const finalSpan = document.getElementById('final');
+        const interimSpan = document.getElementById('interim');
+        
+        let recognition;
+        let finalTranscript = '';
+        let isRecognizing = false;
+
+        // Speech Recognition
+        if ('webkitSpeechRecognition' in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'ko-KR';
+
+            recognition.onstart = () => {
+                isRecognizing = true;
+                startButton.disabled = true;
+                stopButton.disabled = false;
+            };
+
+            recognition.onend = () => {
+                isRecognizing = false;
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        finalTranscript += event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                finalSpan.innerHTML = finalTranscript;
+                interimSpan.innerHTML = interimTranscript;
+            };
+
+            recognition.onerror = (event) => {
+                console.error('Recognition error:', event.error);
+            };
+
+            startButton.onclick = () => {
+                finalTranscript = '';
+                recognition.start();
+            };
+
+            stopButton.onclick = () => {
+                recognition.stop();
+            };
+        } else {
+            startButton.style.display = 'none';
+            stopButton.style.display = 'none';
+            finalSpan.innerHTML = '죄송합니다. 이 브라우저는 음성 인식을 지원하지 않습니다.';
+        }
+
+        // Text-to-Speech
+        const synth = window.speechSynthesis;
+        let voices = [];
+
+        function populateVoiceList() {
+            voices = synth.getVoices().filter(voice => voice.lang.startsWith('ko-'));
+            if (voices.length === 0) {
+                voices = synth.getVoices().filter(voice => voice.lang.startsWith('en-'));
+            }
+        }
+
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+
+        ttsButton.onclick = () => {
+            if (synth.speaking) {
+                console.error('이미 읽는 중입니다.');
+                return;
+            }
+            if (finalTranscript !== '') {
+                const utterThis = new SpeechSynthesisUtterance(finalTranscript);
+                utterThis.voice = voices[0];
+                utterThis.pitch = 1;
+                utterThis.rate = 1;
+                synth.speak(utterThis);
+            }
+        };
+    </script>
+</body>
+</html>
